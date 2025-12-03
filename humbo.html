@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClausLab - Explorador de Clausius-Clapeyron</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .section {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin: 20px 0;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: fadeIn 0.5s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: #764ba2;
+            margin: 30px 0 20px;
+            font-size: 1.8em;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-center {
+            display: block;
+            margin: 30px auto;
+        }
+
+        .phase-animation {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            background: linear-gradient(to bottom, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .molecule {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #2196F3;
+            border-radius: 50%;
+            animation: float 3s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            50% { transform: translateY(-20px) translateX(10px); }
+        }
+
+        .variable-card {
+            display: inline-block;
+            background: #f5f5f5;
+            padding: 15px 25px;
+            margin: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .variable-card:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .tooltip {
+            display: none;
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            top: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 250px;
+            font-size: 0.9em;
+            z-index: 1000;
+        }
+
+        .variable-card:hover .tooltip {
+            display: block;
+        }
+
+        .slider-container {
+            margin: 30px 0;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            background: #764ba2;
+            transform: scale(1.2);
+        }
+
+        .result-box {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+        }
+
+        .equation {
+            font-size: 1.3em;
+            text-align: center;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .substance-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .substance-card {
+            background: white;
+            border: 2px solid #ddd;
+            padding: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .substance-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .substance-card.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 30px 0;
+        }
+
+        .exercise-card {
+            background: #f9f9f9;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .feedback {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        .feedback.correct {
+            background: #4caf50;
+            color: white;
+        }
+
+        .feedback.incorrect {
+            background: #f44336;
+            color: white;
+        }
+
+        .score-display {
+            text-align: center;
+            font-size: 2em;
+            color: #667eea;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #ddd;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .comparison-panel {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-label:hover {
+            background: #e0e0e0;
+        }
+
+        .checkbox-label input {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .section {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .btn {
+                padding: 12px 30px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sección 1: Inicio -->
+        <div id="section1" class="section active">
+            <h1>🧪 ClausLab</h1>
+            <h2>Explorador de la Ecuación de Clausius-Clapeyron</h2>
+            
+            <div class="phase-animation" id="introAnimation">
+                <!-- Las moléculas se generarán dinámicamente -->
+            </div>
+            
+            <p style="font-size: 1.2em; line-height: 1.8; text-align: center; margin: 30px 0;">
+                La ecuación de Clausius-Clapeyron describe la relación entre la <strong>presión de vapor</strong> 
+                y la <strong>temperatura</strong> durante los cambios de fase de una sustancia. 
+                Es fundamental en termodinámica para entender fenómenos como la ebullición, 
+                evaporación y condensación.
+            </p>
+            
+            <div class="equation">
+                ln(P₂/P₁) = -(ΔH<sub>vap</sub>/R) × (1/T₂ - 1/T₁)
+            </div>
+            
+            <button class="btn btn-center" onclick="goToSection(2)">🚀 Explorar el fenómeno</button>
+        </div>
+
+        <!-- Sección 2: Aprendizaje Interactivo -->
+        <div id="section2" class="section">
+            <h1>📚 Módulo de Aprendizaje</h1>
+            <h2>Conoce las variables de la ecuación</h2>
+            
+            <p style="margin: 20px 0; font-size: 1.1em;">
+                Pasa el cursor sobre cada variable para conocer su significado:
+            </p>
+            
+            <div style="text-align: center; margin: 40px 0;">
+                <div class="variable-card">
+                    <strong>P₁, P₂</strong>
+                    <div class="tooltip">
+                        <strong>Presión de vapor</strong><br>
+                        P₁: Presión inicial (atm)<br>
+                        P₂: Presión final (atm)<br>
+                        Representa la presión ejercida por el vapor en equilibrio con el líquido.
+                    </div>
+                </div>
+                
+                <div class="variable-card">
+                    <strong>T₁, T₂</strong>
+                    <div class="tooltip">
+                        <strong>Temperatura</strong><br>
+                        T₁: Temperatura inicial (K)<br>
+                        T₂: Temperatura final (K)<br>
+                        Siempre debe expresarse en Kelvin (K = °C + 273.15)
+                    </div>
+                </div>
+                
+                <div class="variable-card">
+                    <strong>ΔH<sub>vap</sub></strong>
+                    <div class="tooltip">
+                        <strong>Entalpía de vaporización</strong><br>
+                        Unidades: J/mol o kJ/mol<br>
+                        Energía necesaria para convertir 1 mol de líquido en vapor a temperatura constante.
+                    </div>
+                </div>
+                
+                <div class="variable-card">
+                    <strong>R</strong>
+                    <div class="tooltip">
+                        <strong>Constante de los gases</strong><br>
+                        R = 8.314 J/(mol·K)<br>
+                        Constante universal que relaciona energía, temperatura y cantidad de sustancia.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="result-box">
+                <h3>💡 Concepto clave</h3>
+                <p style="font-size: 1.1em; line-height: 1.8;">
+                    Cuando aumentamos la temperatura de un líquido, las moléculas adquieren más energía cinética. 
+                    Esto permite que más moléculas escapen de la superficie del líquido, 
+                    aumentando así la <strong>presión de vapor</strong>.
+                </p>
+            </div>
+            
+            <div class="nav-buttons">
+                <button class="btn" onclick="goToSection(1)">⬅️ Anterior</button>
+                <button class="btn" onclick="goToSection(3)">Siguiente ➡️</button>
+            </div>
+        </div>
+
+        <!-- Sección 3: Simulador -->
+        <div id="section3" class="section">
+            <h1>🔬 Simulador de Experimentos</h1>
+            
+            <h2>Selecciona una sustancia:</h2>
+            <div class="substance-selector" id="substanceSelector">
+                <div class="substance-card selected" onclick="selectSubstance('water', this)">
+                    <h3>💧 Agua</h3>
+                    <p>ΔH<sub>vap</sub> = 40.66 kJ/mol</p>
+                </div>
+                <div class="substance-card" onclick="selectSubstance('ethanol', this)">
+                    <h3>🍺 Etanol</h3>
+                    <p>ΔH<sub>vap</sub> = 38.56 kJ/mol</p>
+                </div>
+                <div class="substance-card" onclick="selectSubstance('ammonia', this)">
+                    <h3>⚗️ Amoníaco</h3>
+                    <p>ΔH<sub>vap</sub> = 23.33 kJ/mol</p>
+                </div>
+                <div class="substance-card" onclick="selectSubstance('acetone', this)">
+                    <h3>🧴 Acetona</h3>
+                    <p>ΔH<sub>vap</sub> = 29.10 kJ/mol</p>
+                </div>
+            </div>
+            
+            <div class="slider-container">
+                <h3>Temperatura: <span id="tempValue">25</span> °C (<span id="tempK">298.15</span> K)</h3>
+                <input type="range" min="0" max="100" value="25" class="slider" id="tempSlider">
+            </div>
+            
+            <div class="result-box" id="simulatorResults">
+                <h3>📊 Resultados</h3>
+                <p><strong>Presión de vapor:</strong> <span id="pressureValue">0.0317</span> atm</p>
+                <p><strong>Presión en mmHg:</strong> <span id="pressuremmHg">24.1</span> mmHg</p>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="simulatorChart"></canvas>
+            </div>
+            
+            <div class="equation" id="equationDisplay">
+                ln(P/1) = -(40660/8.314) × (1/298.15 - 1/373.15)
+            </div>
+            
+            <div class="nav-buttons">
+                <button class="btn" onclick="goToSection(2)">⬅️ Anterior</button>
+                <button class="btn" onclick="goToSection(4)">Siguiente ➡️</button>
+            </div>
+        </div>
+
+        <!-- Sección 4: Comparación -->
+        <div id="section4" class="section">
+            <h1>📈 Comparación de Sustancias</h1>
+            
+            <h2>Selecciona las sustancias que deseas comparar:</h2>
+            <div class="comparison-panel">
+                <label class="checkbox-label">
+                    <input type="checkbox" checked onchange="updateComparison()" data-substance="water">
+                    💧 Agua
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" checked onchange="updateComparison()" data-substance="ethanol">
+                    🍺 Etanol
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" checked onchange="updateComparison()" data-substance="ammonia">
+                    ⚗️ Amoníaco
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" checked onchange="updateComparison()" data-substance="acetone">
+                    🧴 Acetona
+                </label>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="comparisonChart"></canvas>
+            </div>
+            
+            <div class="result-box">
+                <h3>🔍 Análisis</h3>
+                <p style="font-size: 1.1em; line-height: 1.8;">
+                    Observa cómo sustancias con <strong>mayor entalpía de vaporización</strong> (como el agua) 
+                    requieren más energía para evaporarse, resultando en curvas más pronunciadas. 
+                    El amoníaco, con menor ΔH<sub>vap</sub>, se evapora más fácilmente.
+                </p>
+            </div>
+            
+            <div class="nav-buttons">
+                <button class="btn" onclick="goToSection(3)">⬅️ Anterior</button>
+                <button class="btn" onclick="goToSection(5)">Siguiente ➡️</button>
+            </div>
+        </div>
+
+        <!-- Sección 5: Ejercicios -->
+        <div id="section5" class="section">
+            <h1>✏️ Zona de Práctica</h1>
+            
+            <div class="exercise-card">
+                <h2>Ejercicio 1</h2>
+                <p style="font-size: 1.1em; margin: 15px 0;">
+                    La presión de vapor del agua a 100°C es 1 atm. 
+                    Calcula la presión de vapor a 60°C.
+                    (ΔH<sub>vap</sub> del agua = 40660 J/mol)
+                </p>
+                
+                <div class="input-group">
+                    <label>Tu respuesta (en atm):</label>
+                    <input type="number" id="exercise1Answer" step="0.001" placeholder="Ej: 0.196">
+                </div>
+                
+                <button class="btn" onclick="checkExercise1()">Verificar respuesta</button>
+                
+                <div id="exercise1Feedback"></div>
+                
+                <div id="exercise1Steps" style="display: none; margin-top: 20px; padding: 20px; background: #f0f8ff; border-radius: 10px;">
+                    <h3>📝 Solución paso a paso:</h3>
+                    <p><strong>Paso 1:</strong> Convertir temperaturas a Kelvin</p>
+                    <p>T₁ = 100°C + 273.15 = 373.15 K</p>
+                    <p>T₂ = 60°C + 273.15 = 333.15 K</p>
+                    
+                    <p style="margin-top: 15px;"><strong>Paso 2:</strong> Aplicar la ecuación</p>
+                    <p>ln(P₂/1) = -(40660/8.314) × (1/333.15 - 1/373.15)</p>
+                    
+                    <p style="margin-top: 15px;"><strong>Paso 3:</strong> Resolver</p>
+                    <p>ln(P₂) = -(4889.8) × (0.003002 - 0.002680)</p>
+                    <p>ln(P₂) = -(4889.8) × (0.000322)</p>
+                    <p>ln(P₂) = -1.574</p>
+                    <p>P₂ = e<sup>-1.574</sup> ≈ 0.207 atm</p>
+                </div>
+            </div>
+            
+            <div class="exercise-card">
+                <h2>Ejercicio 2</h2>
+                <p style="font-size: 1.1em; margin: 15px 0;">
+                    ¿A qué temperatura el etanol tendrá una presión de vapor de 0.5 atm?
+                    (ΔH<sub>vap</sub> = 38560 J/mol, P a 78.4°C = 1 atm)
+                </p>
+                
+                <div class="input-group">
+                    <label>Tu respuesta (en °C):</label>
+                    <input type="number" id="exercise2Answer" step="0.1" placeholder="Ej: 63.5">
+                </div>
+                
+                <button class="btn" onclick="checkExercise2()">Verificar respuesta</button>
+                
+                <div id="exercise2Feedback"></div>
+                
+                <div id="exercise2Steps" style="display: none; margin-top: 20px; padding: 20px; background: #f0f8ff; border-radius: 10px;">
+                    <h3>📝 Solución paso a paso:</h3>
+                    <p><strong>Paso 1:</strong> Datos conocidos</p>
+                    <p>T₁ = 78.4°C = 351.55 K, P₁ = 1 atm</p>
+                    <p>P₂ = 0.5 atm, T₂ = ?</p>
+                    
+                    <p style="margin-top: 15px;"><strong>Paso 2:</strong> Reorganizar la ecuación</p>
+                    <p>1/T₂ = 1/T₁ - (R/ΔH<sub>vap</sub>) × ln(P₂/P₁)</p>
+                    
+                    <p style="margin-top: 15px;"><strong>Paso 3:</strong> Sustituir valores</p>
+                    <p>1/T₂ = 1/351.55 - (8.314/38560) × ln(0.5/1)</p>
+                    <p>1/T₂ = 0.002845 - (0.0002156) × (-0.693)</p>
+                    <p>1/T₂ = 0.002845 + 0.0001494</p>
+                    <p>1/T₂ = 0.002994</p>
+                    <p>T₂ = 334.0 K ≈ 60.9°C</p>
+                </div>
+            </div>
+            
+            <div class="nav-buttons">
+                <button class="btn" onclick="goToSection(4)">⬅️ Anterior</button>
+                <button class="btn" onclick="goToSection(6)">Siguiente ➡️</button>
+            </div>
+        </div>
+
+        <!-- Sección 6: Visualización Avanzada -->
+        <div id="section6" class="section">
+            <h1>🌡️ Visualización Conceptual Avanzada</h1>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0;">
+                <div>
+                    <h3 style="text-align: center;">Comportamiento Molecular</h3>
+                    <div class="phase-animation" id="molecularAnimation" style="height: 400px;">
+                        <!-- Animación de moléculas -->
+                    </div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <p><strong>Temperatura:</strong> <span id="molTemp">25</span>°C</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 style="text-align: center;">Presión vs Temperatura</h3>
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="advancedChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="slider-container">
+                <h3>Controla la temperatura del sistema</h3>
+                <input type="range" min="0" max="100" value="25" class="slider" id="advancedSlider">
+            </div>
+            
+            <div class="result-box">
+                <h3>🔬 Observaciones</h3>
+                <p id="advancedObservation" style="font-size: 1.1em; line-height: 1.8;">
+                    A 25°C, las moléculas tienen energía cinética moderada. 
+                    Pocas moléculas tienen suficiente energía para escapar de la superficie del líquido.
+                </p>
+            </div>
+            
+            <div class="nav-buttons">
+                <button class="btn" onclick="goToSection(5)">⬅️ Anterior</button>
+                <button class="btn" onclick="goToSection(7)">Siguiente ➡️</button>
+            </div>
+        </div>
+
+        <!-- Sección 7: Desafío Final -->
+        <div id="section7" class="section">
+            <h1>🏆 Desafío Final</h1>
+            
+            <div class="score-display">
+                Puntuación: <span id="finalScore">0</span> / 100
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar" style="width: 0%;">0%</div>
+            </div>
+            
+            <div class="exercise-card" id="challengeCard">
+                <h2>Pregunta <span id="questionNumber">1</span> de 5</h2>
+                <p id="challengeQuestion" style="font-size: 1.2em; margin: 20px 0;"></p>
+                
+                <div class="input-group">
+                    <label>Tu respuesta:</label>
+                    <input type="number" id="challengeAnswer" step="0.01">
+                </div>
+                
+                <p style="margin-top: 10px; color: #666;">
+                    ⏱️ Tiempo restante: <span id="timer">60</span> segundos
+                </p>
+                
+                <button class="btn" onclick="submitChallenge()">Enviar respuesta</button>
+                
+                <div id="challengeFeedback"></div>
+            </div>
+            
+            <div id="finalResults" style="display: none; text-align: center;">
+                <h2>¡Desafío completado! 🎉</h2>
+                <div class="score-display" style="font-size: 3em;">
+                    <span id="finalScoreDisplay">0</span> puntos
+                </div>
+                
+                <div id="badge" style="font-size: 5em; margin: 30px 0;"></div>
+                <h3 id="badgeTitle" style="color: #667eea; font-size: 1.8em;"></h3>
+                
+                <p id="finalMessage" style="font-size: 1.2em; margin: 20px 0;"></p>
+                
+                <button class="btn" onclick="resetChallenge()">🔄 Intentar de nuevo</button>
+            </div>
+            
+            <div class="nav-buttons">
+                <button class="btn" onclick="goToSection(6)">⬅️ Anterior</button>
+                <button class="btn" onclick="goToSection(8)">Siguiente ➡️</button>
+            </div>
+        </div>
+
+        <!-- Sección 8: Conclusión -->
+        <div id="section8" class="section">
+            <h1>🎓 Conclusión y Recursos</h1>
+            
+            <h2>Resumen de lo Aprendido</h2>
+            <div class="result-box">
+                <h3>✅ Has dominado:</h3>
+                <ul style="font-size: 1.1em; line-height: 2; margin-left: 20px;">
+                    <li>La ecuación de Clausius-Clapeyron y sus variables</li>
+                    <li>Cómo la temperatura afecta la presión de vapor</li>
+                    <li>Diferencias entre sustancias según su entalpía de vaporización</li>
+                    <li>Resolución de problemas prácticos de termodinámica</li>
+                    <li>Interpretación molecular de los cambios de fase</li>
+                </ul>
+            </div>
+            
+            <h2>Aplicaciones Prácticas</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 30px 0;">
+                <div class="result-box">
+                    <h3>🏭 Ingeniería Química</h3>
+                    <p>Diseño de evaporadores, torres de destilación y equipos de separación</p>
+                </div>
+                
+                <div class="result-box">
+                    <h3>🌡️ Meteorología</h3>
+                    <p>Predicción de formación de nubes, niebla y patrones de evaporación</p>
+                </div>
+                
+                <div class="result-box">
+                    <h3>🍷 Industria Alimentaria</h3>
+                    <p>Procesos de destilación de bebidas alcohólicas y concentración de alimentos</p>
+                </div>
+                
+                <div class="result-box">
+                    <h3>❄️ Refrigeración</h3>
+                    <p>Selección de refrigerantes y diseño de sistemas de enfriamiento</p>
+                </div>
+                
+                <div class="result-box">
+                    <h3>💊 Farmacéutica</h3>
+                    <p>Liofilización de medicamentos y control de calidad</p>
+                </div>
+                
+                <div class="result-box">
+                    <h3>🌍 Ciencias Ambientales</h3>
+                    <p>Estudio de ciclos hidrológicos y comportamiento de contaminantes volátiles</p>
+                </div>
+            </div>
+            
+            <h2>Profundiza tu Conocimiento</h2>
+            <div class="exercise-card">
+                <h3>📚 Temas Relacionados</h3>
+                <ul style="font-size: 1.1em; line-height: 2; margin-left: 20px;">
+                    <li>Diagrama de fases de sustancias puras</li>
+                    <li>Punto triple y punto crítico</li>
+                    <li>Regla de Trouton y entropía de vaporización</li>
+                    <li>Ecuación de Antoine (forma empírica alternativa)</li>
+                    <li>Presión de vapor de soluciones (Ley de Raoult)</li>
+                    <li>Fenómenos de ebullición y cavitación</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center; margin: 40px 0;">
+                <h2>¡Gracias por usar ClausLab! 🎉</h2>
+                <p style="font-size: 1.2em; margin: 20px 0;">
+                    Has completado tu viaje de aprendizaje sobre la ecuación de Clausius-Clapeyron.
+                </p>
+                <button class="btn" onclick="goToSection(1)">🏠 Volver al inicio</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let currentSubstance = 'water';
+        let simulatorChart = null;
+        let comparisonChart = null;
+        let advancedChart = null;
+        let challengeTimer = null;
+        let currentQuestion = 0;
+        let score = 0;
+        let timeLeft = 60;
+        
+        // Datos de sustancias (ΔHvap en J/mol)
+        const substances = {
+            water: { name: 'Agua', Hvap: 40660, color: '#2196F3' },
+            ethanol: { name: 'Etanol', Hvap: 38560, color: '#FF9800' },
+            ammonia: { name: 'Amoníaco', Hvap: 23330, color: '#4CAF50' },
+            acetone: { name: 'Acetona', Hvap: 29100, color: '#E91E63' }
+        };
+        
+        const R = 8.314; // J/(mol·K)
+        
+        // Funciones de navegación
+        function goToSection(num) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById('section' + num).classList.add('active');
+            window.scrollTo(0, 0);
+            
+            // Inicializar secciones específicas
+            if (num === 3) initSimulator();
+            if (num === 4) initComparison();
+            if (num === 6) initAdvanced();
+            if (num === 7) startChallenge();
+        }
+        
+        // Animación de moléculas en inicio
+        function createMolecules(containerId, count) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const molecule = document.createElement('div');
+                molecule.className = 'molecule';
+                molecule.style.left = Math.random() * 90 + '%';
+                molecule.style.top = Math.random() * 80 + 20 + '%';
+                molecule.style.animationDelay = Math.random() * 3 + 's';
+                molecule.style.animationDuration = (2 + Math.random() * 2) + 's';
+                container.appendChild(molecule);
+            }
+        }
+        
+        createMolecules('introAnimation', 30);
+        
+        // Función para calcular presión de vapor
+        function calculatePressure(substance, tempC) {
+            const Hvap = substances[substance].Hvap;
+            const T = tempC + 273.15; // Convertir a Kelvin
+            const T_ref = 373.15; // 100°C en Kelvin (punto de ebullición del agua como referencia)
+            const P_ref = 1; // 1 atm a 100°C
+            
+            // ln(P2/P1) = -(Hvap/R) * (1/T2 - 1/T1)
+            const lnRatio = -(Hvap / R) * (1/T - 1/T_ref);
+            const P = P_ref * Math.exp(lnRatio);
+            
+            return P;
+        }
+        
+        // Selección de sustancia
+        function selectSubstance(substance, element) {
+            currentSubstance = substance;
+            document.querySelectorAll('.substance-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            updateSimulator();
+        }
+        
+        // Inicializar simulador
+        function initSimulator() {
+            const slider = document.getElementById('tempSlider');
+            slider.addEventListener('input', updateSimulator);
+            updateSimulator();
+            
+            // Crear gráfica
+            const ctx = document.getElementById('simulatorChart').getContext('2d');
+            simulatorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Presión de vapor',
+                        data: [],
+                        borderColor: substances[currentSubstance].color,
+                        backgroundColor: substances[currentSubstance].color + '33',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Temperatura (°C)' } },
+                        y: { title: { display: true, text: 'Presión (atm)' } }
+                    }
+                }
+            });
+        }
+        
+        function updateSimulator() {
+            const tempC = parseFloat(document.getElementById('tempSlider').value);
+            const tempK = tempC + 273.15;
+            
+            document.getElementById('tempValue').textContent = tempC.toFixed(1);
+            document.getElementById('tempK').textContent = tempK.toFixed(2);
+            
+            const pressure = calculatePressure(currentSubstance, tempC);
+            const pressuremmHg = pressure * 760;
+            
+            document.getElementById('pressureValue').textContent = pressure.toFixed(4);
+            document.getElementById('pressuremmHg').textContent = pressuremmHg.toFixed(1);
+            
+            // Actualizar ecuación
+            const Hvap = substances[currentSubstance].Hvap;
+            document.getElementById('equationDisplay').innerHTML = 
+                `ln(P/1) = -(${Hvap}/8.314) × (1/${tempK.toFixed(2)} - 1/373.15)`;
+            
+            // Actualizar gráfica
+            if (simulatorChart) {
+                const temps = [];
+                const pressures = [];
+                for (let t = 0; t <= 100; t += 5) {
+                    temps.push(t);
+                    pressures.push(calculatePressure(currentSubstance, t));
+                }
+                
+                simulatorChart.data.labels = temps;
+                simulatorChart.data.datasets[0].data = pressures;
+                simulatorChart.data.datasets[0].borderColor = substances[currentSubstance].color;
+                simulatorChart.data.datasets[0].backgroundColor = substances[currentSubstance].color + '33';
+                simulatorChart.data.datasets[0].label = substances[currentSubstance].name;
+                simulatorChart.update();
+            }
+        }
+        
+        // Comparación de sustancias
+        function initComparison() {
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            
+            const datasets = [];
+            Object.keys(substances).forEach(key => {
+                const temps = [];
+                const pressures = [];
+                for (let t = 0; t <= 100; t += 2) {
+                    temps.push(t);
+                    pressures.push(calculatePressure(key, t));
+                }
+                
+                datasets.push({
+                    label: substances[key].name,
+                    data: pressures,
+                    borderColor: substances[key].color,
+                    backgroundColor: substances[key].color + '33',
+                    tension: 0.4,
+                    fill: false
+                });
+            });
+            
+            comparisonChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 51}, (_, i) => i * 2),
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Temperatura (°C)' } },
+                        y: { title: { display: true, text: 'Presión (atm)' }, type: 'logarithmic' }
+                    }
+                }
+            });
+        }
+        
+        function updateComparison() {
+            if (!comparisonChart) return;
+            
+            const checkboxes = document.querySelectorAll('.comparison-panel input[type="checkbox"]');
+            checkboxes.forEach((cb, idx) => {
+                comparisonChart.data.datasets[idx].hidden = !cb.checked;
+            });
+            
+            comparisonChart.update();
+        }
+        
+        // Ejercicios
+        function checkExercise1() {
+            const answer = parseFloat(document.getElementById('exercise1Answer').value);
+            const correct = 0.207; // Valor aproximado correcto
+            const tolerance = 0.015;
+            
+            const feedback = document.getElementById('exercise1Feedback');
+            const steps = document.getElementById('exercise1Steps');
+            
+            if (Math.abs(answer - correct) < tolerance) {
+                feedback.innerHTML = '<div class="feedback correct">¡Correcto! ✅ Excelente trabajo.</div>';
+                steps.style.display = 'block';
+            } else {
+                feedback.innerHTML = '<div class="feedback incorrect">❌ Incorrecto. La respuesta correcta es aproximadamente 0.207 atm. Revisa los pasos a continuación.</div>';
+                steps.style.display = 'block';
+            }
+        }
+        
+        function checkExercise2() {
+            const answer = parseFloat(document.getElementById('exercise2Answer').value);
+            const correct = 60.9;
+            const tolerance = 2;
+            
+            const feedback = document.getElementById('exercise2Feedback');
+            const steps = document.getElementById('exercise2Steps');
+            
+            if (Math.abs(answer - correct) < tolerance) {
+                feedback.innerHTML = '<div class="feedback correct">¡Correcto! ✅ Dominas la ecuación.</div>';
+                steps.style.display = 'block';
+            } else {
+                feedback.innerHTML = '<div class="feedback incorrect">❌ Incorrecto. La respuesta correcta es aproximadamente 60.9°C. Revisa los pasos.</div>';
+                steps.style.display = 'block';
+            }
+        }
+        
+        // Visualización avanzada
+        function initAdvanced() {
+            createMolecules('molecularAnimation', 50);
+            
+            const slider = document.getElementById('advancedSlider');
+            slider.addEventListener('input', updateAdvanced);
+            
+            const ctx = document.getElementById('advancedChart').getContext('2d');
+            advancedChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 21}, (_, i) => i * 5),
+                    datasets: [{
+                        label: 'Agua',
+                        data: Array.from({length: 21}, (_, i) => calculatePressure('water', i * 5)),
+                        borderColor: '#2196F3',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Temperatura (°C)' } },
+                        y: { title: { display: true, text: 'Presión (atm)' } }
+                    }
+                }
+            });
+            
+            updateAdvanced();
+        }
+        
+        function updateAdvanced() {
+            const tempC = parseFloat(document.getElementById('advancedSlider').value);
+            document.getElementById('molTemp').textContent = tempC.toFixed(0);
+            
+            // Actualizar animación de moléculas
+            const container = document.getElementById('molecularAnimation');
+            const molecules = container.querySelectorAll('.molecule');
+            const speedFactor = 1 + (tempC / 100) * 2;
+            
+            molecules.forEach(mol => {
+                mol.style.animationDuration = (3 / speedFactor) + 's';
+                if (tempC > 70) {
+                    mol.style.top = Math.random() * 30 + '%';
+                } else if (tempC > 40) {
+                    mol.style.top = Math.random() * 50 + 25 + '%';
+                } else {
+                    mol.style.top = Math.random() * 30 + 50 + '%';
+                }
+            });
+            
+            // Actualizar observación
+            let observation = '';
+            if (tempC < 30) {
+                observation = 'A baja temperatura, las moléculas tienen poca energía cinética. La mayoría permanece en el líquido y pocas escapan como vapor.';
+            } else if (tempC < 60) {
+                observation = 'A temperatura moderada, más moléculas adquieren suficiente energía para vencer las fuerzas intermoleculares y evaporarse.';
+            } else if (tempC < 90) {
+                observation = 'A alta temperatura, muchas moléculas tienen energía suficiente para evaporarse. La presión de vapor aumenta significativamente.';
+            } else {
+                observation = 'Cerca del punto de ebullición, la evaporación es muy intensa. Las moléculas escapan rápidamente del líquido al vapor.';
+            }
+            
+            document.getElementById('advancedObservation').textContent = observation;
+        }
+        
+        // Desafío final
+        const challenges = [
+            { question: 'Calcula la presión de vapor del agua a 50°C (P a 100°C = 1 atm, ΔHvap = 40660 J/mol). Respuesta en atm:', answer: 0.123, tolerance: 0.015 },
+            { question: 'El etanol hierve a 78.4°C a 1 atm. ¿Cuál es su presión de vapor a 25°C? (ΔHvap = 38560 J/mol). Respuesta en atm:', answer: 0.078, tolerance: 0.01 },
+            { question: 'A qué temperatura (°C) el amoníaco tendrá una presión de vapor de 2 atm? (P a -33.3°C = 1 atm, ΔHvap = 23330 J/mol):', answer: -18.7, tolerance: 2 },
+            { question: 'Calcula ΔHvap (en kJ/mol) de una sustancia si P = 0.5 atm a 60°C y P = 1 atm a 80°C:', answer: 34.5, tolerance: 3 },
+            { question: 'La acetona tiene P = 0.3 atm a 25°C. ¿A qué temperatura (°C) tendrá P = 0.6 atm? (ΔHvap = 29100 J/mol):', answer: 42.5, tolerance: 2.5 }
+        ];
+        
+        function startChallenge() {
+            currentQuestion = 0;
+            score = 0;
+            timeLeft = 60;
+            document.getElementById('challengeCard').style.display = 'block';
+            document.getElementById('finalResults').style.display = 'none';
+            loadQuestion();
+        }
+        
+        function loadQuestion() {
+            if (currentQuestion >= challenges.length) {
+                finishChallenge();
+                return;
+            }
+            
+            const challenge = challenges[currentQuestion];
+            document.getElementById('questionNumber').textContent = currentQuestion + 1;
+            document.getElementById('challengeQuestion').textContent = challenge.question;
+            document.getElementById('challengeAnswer').value = '';
+            document.getElementById('challengeFeedback').innerHTML = '';
+            
+            timeLeft = 60;
+            updateTimer();
+            
+            if (challengeTimer) clearInterval(challengeTimer);
+            challengeTimer = setInterval(() => {
+                timeLeft--;
+                updateTimer();
+                if (timeLeft <= 0) {
+                    clearInterval(challengeTimer);
+                    document.getElementById('challengeFeedback').innerHTML = 
+                        '<div class="feedback incorrect">⏱️ Tiempo agotado</div>';
+                    setTimeout(() => {
+                        currentQuestion++;
+                        loadQuestion();
+                    }, 2000);
+                }
+            }, 1000);
+        }
+        
+        function updateTimer() {
+            document.getElementById('timer').textContent = timeLeft;
+        }
+        
+        function submitChallenge() {
+            if (timeLeft <= 0) return;
+            
+            clearInterval(challengeTimer);
+            const answer = parseFloat(document.getElementById('challengeAnswer').value);
+            const challenge = challenges[currentQuestion];
+            
+            if (Math.abs(answer - challenge.answer) < challenge.tolerance) {
+                const points = Math.floor(20 + (timeLeft / 60) * 10);
+                score += points;
+                document.getElementById('challengeFeedback').innerHTML = 
+                    `<div class="feedback correct">✅ ¡Correcto! +${points} puntos</div>`;
+            } else {
+                document.getElementById('challengeFeedback').innerHTML = 
+                    `<div class="feedback incorrect">❌ Incorrecto. La respuesta era ${challenge.answer.toFixed(2)}</div>`;
+            }
+            
+            document.getElementById('finalScore').textContent = score;
+            const progress = ((currentQuestion + 1) / challenges.length) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            document.getElementById('progressBar').textContent = progress.toFixed(0) + '%';
+            
+            setTimeout(() => {
+                currentQuestion++;
+                loadQuestion();
+            }, 2500);
+        }
+        
+        function finishChallenge() {
+            document.getElementById('challengeCard').style.display = 'none';
+            document.getElementById('finalResults').style.display = 'block';
+            document.getElementById('finalScoreDisplay').textContent = score;
+            
+            let badge, title, message;
+            if (score >= 90) {
+                badge = '🏆';
+                title = 'Maestro de la Vaporización';
+                message = '¡Extraordinario! Dominas completamente la ecuación de Clausius-Clapeyron.';
+            } else if (score >= 70) {
+                badge = '🥇';
+                title = 'Experto en Termodinámica';
+                message = '¡Excelente trabajo! Tienes un sólido entendimiento del tema.';
+            } else if (score >= 50) {
+                badge = '🥈';
+                title = 'Estudiante Aplicado';
+                message = 'Buen esfuerzo. Con un poco más de práctica alcanzarás la excelencia.';
+            } else {
+                badge = '🥉';
+                title = 'Aprendiz Persistente';
+                message = 'Sigue practicando. Revisa las secciones anteriores para reforzar tu conocimiento.';
+            }
+            
+            document.getElementById('badge').textContent = badge;
+            document.getElementById('badgeTitle').textContent = title;
+            document.getElementById('finalMessage').textContent = message;
+        }
+        
+        function resetChallenge() {
+            startChallenge();
+        }
+    </script>
+</body>
+</html>
